@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f8f9fa;
+        }
+
+        .login-container {
+            text-align: center;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 5px;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+        }
+        .login-btn{
+            align-items: center;
+            justify-content: center;
+
+        }
+        h1 {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <h1>Text Summarizer</h1>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <div class="login-btn">
+
+
+        <div id="g_id_onload"
+             data-client_id="{{ google_client_id }}"
+             data-context="signup"
+             data-ux_mode="popup"
+             data-login_uri="{{ login_handle_redirect }}"
+             data-nonce=""
+             data-auto_prompt="false">
+        </div>
+
+        <div class="g_id_signin"
+             data-type="standard"
+             data-shape="rectangular"
+             data-theme="outline"
+             data-text="signin_with"
+             data-size="large"
+             data-logo_alignment="left">
+        </div>
+    </div>
+</div>
+{#     data-state="{{ state }}">#}
+</body>
+</html>
