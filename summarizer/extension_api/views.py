@@ -129,7 +129,7 @@ async def make_submission(prompt, account_id):
     print(f'Prompt tokens calc = {tokens_for_prompt}. Tokens for completion max = {tokens_total}')
     print(f'prompt - {prompt}')
     completion = openai.Completion.create(
-        model="text-babbage-001",
+        model="davinci-002",
         prompt=prompt,
         max_tokens=tokens_total,
         temperature=0,
