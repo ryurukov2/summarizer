@@ -60,14 +60,9 @@ def check_daily_usage(request):
         # data = json.loads(request.body)
         # account_id = data.get('account_id')
         try:
-            print('try 1')
             currentuser = request.user
-            print(f'curr user = {currentuser.email}')
-            print(f'curr user = {currentuser.google_account_id}')
             if currentuser.is_authenticated:
-                print('is auth')
                 daily_usage = check_usage(currentuser.google_account_id)
-                print(f'daily usage = {daily_usage}')
                 return JsonResponse({'response_data': daily_usage})
             else:
                 return JsonResponse({'error': 'Authentication required'}, status=401)
@@ -182,7 +177,6 @@ async def submit_text_adv(request):
                 status=411)
         check_usage_async = sync_to_async(check_usage)
         d_u = await check_usage_async(int(account_id))
-        print(d_u)
         if int(d_u) < 20:
             if await check_moderation(input_text):
                 return JsonResponse({
@@ -230,7 +224,6 @@ async def submit_text(request):
                 status=411)
         check_usage_async = sync_to_async(check_usage)
         d_u = await check_usage_async(int(account_id))
-        print(d_u)
         if int(d_u) < 20:
 
             if await check_moderation(input_text):
