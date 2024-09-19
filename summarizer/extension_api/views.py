@@ -96,13 +96,13 @@ def check_moderation(prompt):
     return False
 
 
-async def make_advanced_submission(input_text, account_id):
+async def make_advanced_submission(input_text, account_id, model):
     openai.api_key = os.getenv("OPENAI_API_KEY")
     tokens_for_prompt = len(input_text) / 4
     tokens_total = 4000 - int(tokens_for_prompt)
 
     completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model=model,
         messages=[
             {"role": "system",
              "content": "Your only goal is to provide a factually accurate summary of the text entered by the 'user'."},
@@ -122,6 +122,7 @@ async def make_advanced_submission(input_text, account_id):
 
 
 async def make_submission(prompt, account_id):
+    # deprecated because of openai model deprecation, davinci and babbage don't work well for that task
     openai.api_key = os.getenv("OPENAI_API_KEY")
     tokens_for_prompt = len(prompt) / 4
 
@@ -147,6 +148,7 @@ async def make_submission(prompt, account_id):
 @async_to_sync
 async def submit_text_adv(request):
     if request.method == 'POST':
+        model = 'gpt-4'
         MAX_INPUT_CHARS = 6200
         MIN_INPUT_CHARS = 10
         data = json.loads(request.body)
@@ -177,7 +179,7 @@ async def submit_text_adv(request):
 
                     'response_data': 'The inputted text violates some of OpenAI\'s Terms and Conditions. Apologize for the inconvenience caused.'},
                     status=405)
-            response_data = await make_advanced_submission(input_text, account_id)
+            response_data = await make_advanced_submission(input_text, account_id, model)
             return JsonResponse(response_data)
         else:
             return JsonResponse({'response_data': 'Free daily usage exceeded. Usage limits reset at 00:00UTC.'},
@@ -190,6 +192,7 @@ async def submit_text_adv(request):
 @async_to_sync
 async def submit_text(request):
     if request.method == 'POST':
+        model = 'gpt-3.5-turbo'
         MAX_INPUT_CHARS = 6200
         MIN_INPUT_CHARS = 10
         data = json.loads(request.body)
@@ -215,13 +218,13 @@ async def submit_text(request):
         d_u = await check_usage_async(int(account_id))
         print(d_u)
         if int(d_u) < 20:
-            prompt = f'"""\n{input_text}\n"""\n Provide a short, accurate summary of the text above. \n'
-            if await check_moderation(prompt):
+            
+            if await check_moderation(input_text):
                 return JsonResponse({
 
                     'response_data': 'The inputted text violates some of OpenAI\'s Terms and Conditions. Apologize for the inconvenience caused.'},
                     status=405)
-            response_data = await make_submission(prompt, account_id)
+            response_data = await make_advanced_submission(input_text, account_id, model)
             # response_data = await make_advanced_submission(input_text, account_id)
             return JsonResponse(response_data)
         else:
