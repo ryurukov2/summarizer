@@ -1,11 +1,14 @@
 import asyncio
 from datetime import datetime, time
+from urllib import response
 
 from asgiref.sync import async_to_sync, sync_to_async
 from django.db import transaction
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic import ListView
+from django.views.generic.detail import DetailView
 import json
 import os
 import openai
@@ -13,8 +16,9 @@ from dotenv import load_dotenv
 
 from summarizer.auth_app.models import Account
 from summarizer.auth_app.utils import get_or_create_account, login_required_api
+from .models import Summaries
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 @sync_to_async
@@ -32,10 +36,10 @@ async def increment_daily_usage(account_id):
 def check_if_reset_needed(account):
     current_utc_time = timezone.now()
     # Create a new datetime object for today's date with 00:00 UTC time
-    today_midnight_utc = datetime.combine(current_utc_time.date(), time(), tzinfo=timezone.utc)
+    today_midnight_utc = datetime.combine(
+        current_utc_time.date(), time(), tzinfo=timezone.utc)
     if account.usage_reset_date.date() < today_midnight_utc.date():
         account.reset_usage()
-
 
 
 def check_usage(google_account_id):
@@ -111,12 +115,19 @@ async def make_advanced_submission(input_text, account_id, model):
         temperature=0,
     )
 
-    result = completion["choices"][0]["message"]["content"]
-    await increment_daily_usage(account_id)
-    await increment_daily_usage(account_id)
+    try:
+        result = completion["choices"][0]["message"]["content"]
+        tokens_used = completion["usage"]["total_tokens"]
+        await increment_daily_usage(account_id)
+        save_to_db = sync_to_async(save_submission_to_db)
+        await save_to_db(account_id=account_id, original_text=input_text,
+                              response_text=result, model=model, tokens_used=tokens_used)
+    except Exception as e:
+        print(e)
+        raise Exception("Something went wrong.")
+
     # result = 'Great success using the advanced model'
     # print(f'Result message = {result}')
-
 
     return {'response_data': result}
 
@@ -127,8 +138,6 @@ async def make_submission(prompt, account_id):
     tokens_for_prompt = len(prompt) / 4
 
     tokens_total = 2000 - int(tokens_for_prompt)
-    print(f'Prompt tokens calc = {tokens_for_prompt}. Tokens for completion max = {tokens_total}')
-    print(f'prompt - {prompt}')
     completion = openai.Completion.create(
         model="davinci-002",
         prompt=prompt,
@@ -142,6 +151,7 @@ async def make_submission(prompt, account_id):
     #
     # print(result)
     return {'response_data': result}
+
 
 @csrf_exempt
 @login_required_api
@@ -177,15 +187,21 @@ async def submit_text_adv(request):
             if await check_moderation(input_text):
                 return JsonResponse({
 
-                    'response_data': 'The inputted text violates some of OpenAI\'s Terms and Conditions. Apologize for the inconvenience caused.'},
+                    'response_data': 'The inputted text violates some of OpenAI\'s Terms and Conditions. Apologies for the inconvenience caused.'},
                     status=405)
             response_data = await make_advanced_submission(input_text, account_id, model)
-            return JsonResponse(response_data)
+            try:
+                response_data = await make_advanced_submission(input_text, account_id, model)
+                return JsonResponse(response_data)
+            except Exception as e:
+                print(e)
+                return JsonResponse({'response_data': 'There was an error with your request.'}, status=417)
         else:
             return JsonResponse({'response_data': 'Free daily usage exceeded. Usage limits reset at 00:00UTC.'},
                                 status=403)
 
     return JsonResponse({'response_data': 'Invalid request method'}, status=400)
+
 
 @csrf_exempt
 @login_required_api
@@ -198,9 +214,7 @@ async def submit_text(request):
         data = json.loads(request.body)
         input_text = data.get('input_text')
         account_id = request.user.google_account_id
-        print(account_id)
         # header = request.headers._store["origin"][1]
-        # print(header)
         if not check_valid_request(request):
             return JsonResponse(
                 {'response_data': 'The API endpoint can only be accessed through the browser extension currently.'},
@@ -218,17 +232,48 @@ async def submit_text(request):
         d_u = await check_usage_async(int(account_id))
         print(d_u)
         if int(d_u) < 20:
-            
+
             if await check_moderation(input_text):
                 return JsonResponse({
 
-                    'response_data': 'The inputted text violates some of OpenAI\'s Terms and Conditions. Apologize for the inconvenience caused.'},
+                    'response_data': 'The inputted text violates some of OpenAI\'s Terms and Conditions. Apologies for the inconvenience caused.'},
                     status=405)
-            response_data = await make_advanced_submission(input_text, account_id, model)
-            # response_data = await make_advanced_submission(input_text, account_id)
-            return JsonResponse(response_data)
+            try:
+                response_data = await make_advanced_submission(input_text, account_id, model)
+                return JsonResponse(response_data)
+            except Exception as e:
+                print(e)
+                return JsonResponse({'response_data': 'There was an error with your request.'}, status=417)
+
         else:
             return JsonResponse({'response_data': 'Free daily usage exceeded. Usage limits reset at 00:00UTC.'},
                                 status=403)
 
     return JsonResponse({'response_data': 'Invalid request method'}, status=400)
+
+
+def save_submission_to_db(account_id, original_text, response_text, model, tokens_used):
+    account = Account.objects.get(google_account_id=account_id)
+    new_summary = Summaries.objects.create(account_id=account, original_text=original_text,
+                             summarized_text=response_text, model_used=model, tokens_used=tokens_used)
+    new_summary.save()
+
+
+
+class SummaryListView(ListView):
+    model = Summaries
+    paginate_by = 20
+    ordering = ['-date']
+
+    def get_queryset(self):
+        user = self.request.user
+        return Summaries.objects.filter(account_id=user)
+    
+class SummaryDetailView(DetailView):
+    model = Summaries
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["summary"] = Summaries.objects.get(id=self.kwargs["pk"]) 
+        return context
+    

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Details{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+
+    <h1 class="mb-4">Summary Details</h1>
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Date: {{ summary.date|date:"F j, Y, g:i a" }}</h5>
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">Input Text</h5>
+            <p class="card-text">{{ summary.original_text }}</p>
+            <hr>
+            <h5 class="card-title">Summarized Text</h5>
+            <p class="card-text">{{ summary.summarized_text }}</p>
+            <hr>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Model Used</h6>
+                    <p>{{ summary.model_used }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Tokens Used</h6>
+                    <p>{{ summary.tokens_used }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer text-end">
+            <a href="{% url 'summary history' %}" class="btn btn-secondary">Back to Summaries</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

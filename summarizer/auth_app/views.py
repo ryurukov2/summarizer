@@ -110,6 +110,8 @@ def google_login(request):
 
 
 def render_index(request):
+    user = request.user
+    history = get_user_submission_history(user)
     return render(request, 'auth_app/index.html')
 
 
@@ -147,3 +149,7 @@ def google_login_api(request):
         print(request.method)
 
     return JsonResponse({'response': 'no success'}, status=400)
+
+
+def get_user_submission_history(user):
+    pass

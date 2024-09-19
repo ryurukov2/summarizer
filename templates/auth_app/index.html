@@ -3,14 +3,11 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-{#    <div class="container mt-5">#}
-{#        <div class="row">#}
-{#            <div class="col-md-12">#}
-{#                <h1 class="display-4">Welcome to Summary GPT</h1>#}
-{#                <p class="lead">#}
-{#                    #}
-{#                </p>#}
-{#            </div>#}
-{#        </div>#}
-{#    </div>#}
+<div class="container mt-5 text-center">
+    <h1 class="display-4 mb-4">Welcome to Summary GPT</h1>
+    <p class="lead mb-5">Your one-stop solution for summarizing text efficiently.</p>
+    <a href="{% url 'summary history' %}" class="btn btn-primary btn-lg">
+        View Your Summary History
+    </a>
+</div>
 {% endblock %}

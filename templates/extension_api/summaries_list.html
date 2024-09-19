@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}History{% endblock %}
+
+{% block content %}
+<div class="container">
+    <ul class="list-unstyled">
+        <li class="row fw-bold border-bottom py-2">
+            <div class="col-2">Date</div>
+            <div class="col-3">Input Text</div>
+            <div class="col-3">Summarized Text</div>
+            <div class="col-2">Model Used</div>
+            <div class="col-2">Tokens Used</div>
+        </li>
+        {% for summary in page_obj %}
+        <li class="row py-2">
+            <a href="{% url 'summary detail' summary.id %}" class="d-flex text-decoration-none text-dark">
+                <div class="col-2">{{ summary.date }}</div>
+                <div class="col-3 text-truncate">{{ summary.original_text }}</div>
+                <div class="col-3 text-truncate">{{ summary.summarized_text }}</div>
+                <div class="col-2">{{ summary.model_used }}</div>
+                <div class="col-2">{{ summary.tokens_used }}</div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
